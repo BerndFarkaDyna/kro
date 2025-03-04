@@ -55,6 +55,8 @@ type instanceGraphReconciler struct {
 	reconcileConfig ReconcileConfig
 	// state holds the current state of the instance and its sub-resources.
 	state *InstanceState
+	// owner reference to the owning ResourceGraph Instance
+	OwnerReference metav1.OwnerReference
 }
 
 // reconcile performs the reconciliation of the instance and its sub-resources.
@@ -223,6 +225,7 @@ func (igr *instanceGraphReconciler) handleResourceCreation(
 
 	// Apply labels and create resource
 	igr.instanceSubResourcesLabeler.ApplyLabels(resource)
+	resource.SetOwnerReferences([]metav1.OwnerReference{igr.OwnerReference})
 	if _, err := rc.Create(ctx, resource, metav1.CreateOptions{}); err != nil {
 		resourceState.State = "ERROR"
 		resourceState.Err = fmt.Errorf("failed to create resource: %w", err)

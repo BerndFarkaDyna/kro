@@ -24,6 +24,7 @@ import (
 const (
 	// LabelKro is the label key used to identify Kro owned resources.
 	LabelKroPrefix = v1alpha1.KroDomainName + "/"
+	K8sAppPrefix   = "app.kubernetes.io/"
 )
 
 const (
@@ -41,6 +42,8 @@ const (
 	ResourceGraphDefinitionNameLabel      = LabelKroPrefix + "resource-graph-definition-name"
 	ResourceGraphDefinitionNamespaceLabel = LabelKroPrefix + "resource-graph-definition-namespace"
 	ResourceGraphDefinitionVersionLabel   = LabelKroPrefix + "resource-graph-definition-version"
+
+	K8sAppInstanceLabel = K8sAppPrefix + "instance"
 )
 
 // IsKroOwned returns true if the resource is owned by Kro.
@@ -115,20 +118,28 @@ func (gl GenericLabeler) Copy() map[string]string {
 // ResourceGraphDefinitionLabel and ResourceGraphDefinitionIDLabel labels on a resource.
 func NewResourceGraphDefinitionLabeler(rgMeta metav1.Object) GenericLabeler {
 	return map[string]string{
-		ResourceGraphDefinitionIDLabel:        string(rgMeta.GetUID()),
-		ResourceGraphDefinitionNameLabel:      rgMeta.GetName(),
+		ResourceGraphDefinitionIDLabel:   string(rgMeta.GetUID()),
+		ResourceGraphDefinitionNameLabel: rgMeta.GetName(),
 	}
 }
 
-// NewInstanceLabeler returns a new labeler that sets the InstanceLabel and
+// NewInstanceLabeler returns a new labeler that sets the K8sComponentId, InstanceLabel and
 // InstanceIDLabel labels on a resource. The InstanceLabel is the namespace
 // and name of the instance that was reconciled to create the resource.
+// The K8s Component Id gets propagated from the given given and only set when
+// available on it.
 func NewInstanceLabeler(instanceMeta metav1.Object) GenericLabeler {
-	return map[string]string{
+	retVal := map[string]string{
 		InstanceIDLabel:        string(instanceMeta.GetUID()),
 		InstanceLabel:          instanceMeta.GetName(),
 		InstanceNamespaceLabel: instanceMeta.GetNamespace(),
 	}
+
+	appInstance, exists := instanceMeta.GetLabels()[K8sAppInstanceLabel]
+	if exists {
+		retVal[K8sAppInstanceLabel] = appInstance
+	}
+	return retVal
 }
 
 // NewKroMetaLabeler returns a new labeler that sets the OwnedLabel,
